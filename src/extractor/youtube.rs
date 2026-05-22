@@ -11,6 +11,10 @@ use std::collections::HashMap;
 const INNERTUBE_URL: &str = "https://www.youtube.com/youtubei/v1/player";
 const INNERTUBE_UA: &str =
     "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip";
+const ANDROID_UA: &str =
+    "com.google.android.youtube/21.02.35 (Linux; U; Android 11) gzip";
+const IOS_UA: &str =
+    "com.google.ios.youtube/21.02.3 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)";
 
 pub struct YoutubeExtractor;
 
@@ -53,47 +57,121 @@ impl YoutubeExtractor {
         video_id: &str,
         client: &Client,
     ) -> Result<PlayerResponse> {
-        let body = serde_json::json!({
-            "context": {
-                "client": {
-                    "clientName": "ANDROID_VR",
-                    "clientVersion": "1.65.10",
-                    "deviceMake": "Oculus",
-                    "deviceModel": "Quest 3",
-                    "androidSdkVersion": 32,
-                    "userAgent": INNERTUBE_UA,
-                    "osName": "Android",
-                    "osVersion": "12L"
-                }
-            },
-            "videoId": video_id,
-            "playbackContext": {
-                "contentPlaybackContext": {
-                    "html5Preference": "HTML5_PREF_WANTS"
-                }
-            },
-            "params": "CgIQBg=="
-        });
+        // Try clients in order; return first OK response.
+        let attempts = [
+            (
+                "28",
+                "1.65.10",
+                INNERTUBE_UA,
+                serde_json::json!({
+                    "context": {
+                        "client": {
+                            "clientName": "ANDROID_VR",
+                            "clientVersion": "1.65.10",
+                            "deviceMake": "Oculus",
+                            "deviceModel": "Quest 3",
+                            "androidSdkVersion": 32,
+                            "userAgent": INNERTUBE_UA,
+                            "osName": "Android",
+                            "osVersion": "12L"
+                        }
+                    },
+                    "videoId": video_id,
+                    "playbackContext": {
+                        "contentPlaybackContext": { "html5Preference": "HTML5_PREF_WANTS" }
+                    },
+                    "params": "CgIQBg=="
+                }),
+            ),
+            (
+                "5",
+                "21.02.3",
+                IOS_UA,
+                serde_json::json!({
+                    "context": {
+                        "client": {
+                            "clientName": "IOS",
+                            "clientVersion": "21.02.3",
+                            "deviceMake": "Apple",
+                            "deviceModel": "iPhone16,2",
+                            "userAgent": IOS_UA,
+                            "osName": "iPhone",
+                            "osVersion": "18.3.2.22D82"
+                        }
+                    },
+                    "videoId": video_id,
+                    "params": "CgIQBg=="
+                }),
+            ),
+            (
+                "3",
+                "21.02.35",
+                ANDROID_UA,
+                serde_json::json!({
+                    "context": {
+                        "client": {
+                            "clientName": "ANDROID",
+                            "clientVersion": "21.02.35",
+                            "androidSdkVersion": 30,
+                            "userAgent": ANDROID_UA,
+                            "osName": "Android",
+                            "osVersion": "11"
+                        }
+                    },
+                    "videoId": video_id,
+                    "params": "CgIQBg=="
+                }),
+            ),
+        ];
 
-        let resp = client
-            .post(INNERTUBE_URL)
-            .header("User-Agent", INNERTUBE_UA)
-            .header("Content-Type", "application/json")
-            .header("X-YouTube-Client-Name", "28")
-            .header("X-YouTube-Client-Version", "1.65.10")
-            .header("Origin", "https://www.youtube.com")
-            .json(&body)
-            .send()
-            .await
-            .context("Failed to call YouTube InnerTube API")?;
+        let mut last_err: Option<String> = None;
 
-        if !resp.status().is_success() {
-            return Err(anyhow!("InnerTube API returned HTTP {}", resp.status()));
+        for (client_name_id, client_version, ua, body) in &attempts {
+            let resp = client
+                .post(INNERTUBE_URL)
+                .header("User-Agent", *ua)
+                .header("Content-Type", "application/json")
+                .header("X-YouTube-Client-Name", *client_name_id)
+                .header("X-YouTube-Client-Version", *client_version)
+                .header("Origin", "https://www.youtube.com")
+                .json(body)
+                .send()
+                .await
+                .context("Failed to call YouTube InnerTube API")?;
+
+            if !resp.status().is_success() {
+                last_err = Some(format!("InnerTube API returned HTTP {}", resp.status()));
+                continue;
+            }
+
+            let player = resp
+                .json::<PlayerResponse>()
+                .await
+                .context("Failed to parse InnerTube API response")?;
+
+            let status = player
+                .playability_status
+                .as_ref()
+                .map(|ps| ps.status.as_str())
+                .unwrap_or("OK");
+
+            if status == "OK" {
+                return Ok(player);
+            }
+
+            last_err = Some(
+                player
+                    .playability_status
+                    .as_ref()
+                    .and_then(|ps| ps.reason.clone())
+                    .unwrap_or_else(|| status.to_string()),
+            );
         }
 
-        resp.json::<PlayerResponse>()
-            .await
-            .context("Failed to parse InnerTube API response")
+        Err(anyhow!(
+            "{}",
+            last_err.unwrap_or_else(|| "All InnerTube clients failed".to_string())
+        ))
     }
 
     async fn fetch_webpage_info(&self, video_id: &str, client: &Client) -> Option<WebpageInfo> {
