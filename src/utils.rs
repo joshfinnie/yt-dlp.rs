@@ -75,14 +75,11 @@ pub fn mime_to_ext(mime_type: &str) -> &str {
 }
 
 pub fn parse_mime_codecs(mime_type: &str) -> (Option<String>, Option<String>) {
-    let codecs_str = mime_type
-        .split(';')
-        .skip(1)
-        .find_map(|part| {
-            let part = part.trim();
-            part.strip_prefix("codecs=")
-                .map(|c| c.trim_matches('"').to_string())
-        });
+    let codecs_str = mime_type.split(';').skip(1).find_map(|part| {
+        let part = part.trim();
+        part.strip_prefix("codecs=")
+            .map(|c| c.trim_matches('"').to_string())
+    });
 
     let codecs_str = match codecs_str {
         Some(s) => s,
@@ -120,8 +117,12 @@ pub fn parse_mime_codecs(mime_type: &str) -> (Option<String>, Option<String>) {
 
 fn is_audio_codec(codec: &str) -> bool {
     let c = codec.to_lowercase();
-    c.starts_with("mp4a") || c.starts_with("opus") || c.starts_with("vorbis")
-        || c.starts_with("flac") || c.starts_with("mp3") || c.starts_with("ac-3")
+    c.starts_with("mp4a")
+        || c.starts_with("opus")
+        || c.starts_with("vorbis")
+        || c.starts_with("flac")
+        || c.starts_with("mp3")
+        || c.starts_with("ac-3")
         || c.starts_with("ec-3")
 }
 

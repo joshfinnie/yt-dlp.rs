@@ -15,8 +15,6 @@ pub trait Extractor: Send + Sync {
 }
 
 pub fn get_extractor(url: &str) -> Option<Box<dyn Extractor>> {
-    let extractors: Vec<Box<dyn Extractor>> = vec![
-        Box::new(YoutubeExtractor::new()),
-    ];
+    let extractors: Vec<Box<dyn Extractor>> = vec![Box::new(YoutubeExtractor::new())];
     extractors.into_iter().find(|e| e.suitable(url))
 }

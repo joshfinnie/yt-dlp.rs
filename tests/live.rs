@@ -22,8 +22,7 @@ fn youtube_extract_json() {
         String::from_utf8_lossy(&out.stderr)
     );
 
-    let json: serde_json::Value =
-        serde_json::from_slice(&out.stdout).expect("invalid JSON output");
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("invalid JSON output");
 
     assert_eq!(json["id"].as_str().unwrap(), "dQw4w9WgXcQ");
     assert!(
@@ -36,7 +35,11 @@ fn youtube_extract_json() {
         json["title"]
     );
     let formats = json["formats"].as_array().expect("no formats");
-    assert!(formats.len() > 5, "expected many formats, got {}", formats.len());
+    assert!(
+        formats.len() > 5,
+        "expected many formats, got {}",
+        formats.len()
+    );
 }
 
 /// Check that --list-formats exits cleanly and prints format IDs.
@@ -71,10 +74,7 @@ fn youtube_simulate_no_download() {
         .expect("failed to run yt-dlp");
 
     assert!(out.status.success());
-    let entries: Vec<_> = std::fs::read_dir(dir.path())
-        .unwrap()
-        .flatten()
-        .collect();
+    let entries: Vec<_> = std::fs::read_dir(dir.path()).unwrap().flatten().collect();
     assert!(entries.is_empty(), "simulate created files: {:?}", entries);
 }
 
@@ -87,10 +87,12 @@ fn youtube_download_format_18() {
 
     let status = yt_dlp()
         .args([
-            "-f", "18",
+            "-f",
+            "18",
             "--no-progress",
             "--quiet",
-            "-o", &out_template,
+            "-o",
+            &out_template,
             "dQw4w9WgXcQ",
         ])
         .status()
@@ -98,12 +100,13 @@ fn youtube_download_format_18() {
 
     assert!(status.success());
 
-    let mut entries: Vec<_> = std::fs::read_dir(dir.path())
-        .unwrap()
-        .flatten()
-        .collect();
+    let mut entries: Vec<_> = std::fs::read_dir(dir.path()).unwrap().flatten().collect();
     assert_eq!(entries.len(), 1, "expected exactly one output file");
 
     let meta = entries[0].metadata().unwrap();
-    assert!(meta.len() > 1_000_000, "file too small: {} bytes", meta.len());
+    assert!(
+        meta.len() > 1_000_000,
+        "file too small: {} bytes",
+        meta.len()
+    );
 }

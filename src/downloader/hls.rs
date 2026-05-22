@@ -31,12 +31,7 @@ impl HlsDownloader {
         }
     }
 
-    pub async fn download(
-        &self,
-        url: &str,
-        output_path: &Path,
-        label: &str,
-    ) -> Result<()> {
+    pub async fn download(&self, url: &str, output_path: &Path, label: &str) -> Result<()> {
         let playlist_bytes = self
             .client
             .get(url)
@@ -50,19 +45,11 @@ impl HlsDownloader {
             .map_err(|e| anyhow!("Failed to parse HLS playlist: {}", e))?;
 
         let media_url = match playlist {
-            Playlist::MasterPlaylist(master) => {
-                self.select_stream_url(url, &master)?
-            }
+            Playlist::MasterPlaylist(master) => self.select_stream_url(url, &master)?,
             Playlist::MediaPlaylist(_) => url.to_string(),
         };
 
-        let media_bytes = self
-            .client
-            .get(&media_url)
-            .send()
-            .await?
-            .bytes()
-            .await?;
+        let media_bytes = self.client.get(&media_url).send().await?.bytes().await?;
 
         let media_playlist = match m3u8_rs::parse_playlist_res(&media_bytes)
             .map_err(|e| anyhow!("Failed to parse media playlist: {}", e))?
@@ -139,14 +126,16 @@ impl HlsDownloader {
                         return Err(err);
                     }
                     attempt += 1;
-                    tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt.min(5)))).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt.min(5))))
+                        .await;
                 }
                 Err(e) => {
                     if attempt >= self.retries {
                         return Err(e.into());
                     }
                     attempt += 1;
-                    tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt.min(5)))).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt.min(5))))
+                        .await;
                 }
             }
         }
@@ -154,10 +143,7 @@ impl HlsDownloader {
 
     fn select_stream_url(&self, base: &str, master: &MasterPlaylist) -> Result<String> {
         // Pick the stream with the highest bandwidth
-        let best = master
-            .variants
-            .iter()
-            .max_by_key(|v| v.bandwidth);
+        let best = master.variants.iter().max_by_key(|v| v.bandwidth);
 
         let best = best.ok_or_else(|| anyhow!("No streams in HLS master playlist"))?;
         Ok(resolve_url(&base_url_of(base), &best.uri))

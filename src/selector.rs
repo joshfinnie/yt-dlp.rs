@@ -215,10 +215,7 @@ pub fn select_formats<'a>(
     }
 }
 
-fn select_best_single<'a>(
-    selector: &FormatSelector,
-    formats: &'a [Format],
-) -> Result<&'a Format> {
+fn select_best_single<'a>(selector: &FormatSelector, formats: &'a [Format]) -> Result<&'a Format> {
     match selector {
         FormatSelector::Best => {
             // Prefer combined (video+audio) formats; fall back to any if none exist
@@ -226,7 +223,11 @@ fn select_best_single<'a>(
                 .iter()
                 .filter(|f| !f.has_drm && f.is_combined())
                 .collect();
-            let pool = if combined.is_empty() { formats.iter().filter(|f| !f.has_drm).collect::<Vec<_>>() } else { combined };
+            let pool = if combined.is_empty() {
+                formats.iter().filter(|f| !f.has_drm).collect::<Vec<_>>()
+            } else {
+                combined
+            };
             pool.into_iter()
                 .max_by(|a, b| {
                     a.total_score()
@@ -241,7 +242,11 @@ fn select_best_single<'a>(
                 .iter()
                 .filter(|f| !f.has_drm && f.is_combined())
                 .collect();
-            let pool = if combined.is_empty() { formats.iter().filter(|f| !f.has_drm).collect::<Vec<_>>() } else { combined };
+            let pool = if combined.is_empty() {
+                formats.iter().filter(|f| !f.has_drm).collect::<Vec<_>>()
+            } else {
+                combined
+            };
             pool.into_iter()
                 .min_by(|a, b| {
                     a.total_score()
@@ -278,7 +283,10 @@ fn select_best_single<'a>(
                 .filter(|f| !f.has_drm && f.is_audio_only())
                 .collect();
             let pool: Vec<&Format> = if audio_only.is_empty() {
-                formats.iter().filter(|f| !f.has_drm && f.is_combined()).collect()
+                formats
+                    .iter()
+                    .filter(|f| !f.has_drm && f.is_combined())
+                    .collect()
             } else {
                 audio_only
             };
@@ -297,7 +305,10 @@ fn select_best_single<'a>(
                 .filter(|f| !f.has_drm && f.is_audio_only())
                 .collect();
             let pool: Vec<&Format> = if audio_only.is_empty() {
-                formats.iter().filter(|f| !f.has_drm && f.is_combined()).collect()
+                formats
+                    .iter()
+                    .filter(|f| !f.has_drm && f.is_combined())
+                    .collect()
             } else {
                 audio_only
             };
@@ -329,7 +340,11 @@ fn select_best_single<'a>(
         FormatSelector::Filtered(base, filters) => {
             let filtered: Vec<&Format> = formats
                 .iter()
-                .filter(|f| filters.iter().all(|filter| format_matches_filter(f, filter)))
+                .filter(|f| {
+                    filters
+                        .iter()
+                        .all(|filter| format_matches_filter(f, filter))
+                })
                 .collect();
             select_best_single(base, &filtered.into_iter().cloned().collect::<Vec<_>>())
                 // Re-borrow from original since we cloned
@@ -376,17 +391,49 @@ mod tests {
     fn sample_formats() -> Vec<Format> {
         vec![
             // video-only adaptive
-            fmt("313", "webm", "vp9", "none", Some(2160), None, Some(13000.0)),
+            fmt(
+                "313",
+                "webm",
+                "vp9",
+                "none",
+                Some(2160),
+                None,
+                Some(13000.0),
+            ),
             fmt("137", "mp4", "avc1", "none", Some(1080), None, Some(3000.0)),
             fmt("136", "mp4", "avc1", "none", Some(720), None, Some(1000.0)),
             fmt("134", "mp4", "avc1", "none", Some(360), None, Some(300.0)),
             // audio-only adaptive
-            fmt("251", "webm", "none", "opus", None, Some(130.0), Some(130.0)),
+            fmt(
+                "251",
+                "webm",
+                "none",
+                "opus",
+                None,
+                Some(130.0),
+                Some(130.0),
+            ),
             fmt("140", "m4a", "none", "mp4a", None, Some(128.0), Some(128.0)),
             fmt("249", "webm", "none", "opus", None, Some(48.0), Some(48.0)),
             // combined (video+audio)
-            fmt("18", "mp4", "avc1", "mp4a", Some(360), Some(96.0), Some(444.0)),
-            fmt("22", "mp4", "avc1", "mp4a", Some(720), Some(192.0), Some(1100.0)),
+            fmt(
+                "18",
+                "mp4",
+                "avc1",
+                "mp4a",
+                Some(360),
+                Some(96.0),
+                Some(444.0),
+            ),
+            fmt(
+                "22",
+                "mp4",
+                "avc1",
+                "mp4a",
+                Some(720),
+                Some(192.0),
+                Some(1100.0),
+            ),
         ]
     }
 
@@ -394,21 +441,51 @@ mod tests {
 
     #[test]
     fn parse_keywords() {
-        assert!(matches!(parse_selector("best").unwrap(), FormatSelector::Best));
-        assert!(matches!(parse_selector("worst").unwrap(), FormatSelector::Worst));
-        assert!(matches!(parse_selector("bestvideo").unwrap(), FormatSelector::BestVideo));
-        assert!(matches!(parse_selector("worstvideo").unwrap(), FormatSelector::WorstVideo));
-        assert!(matches!(parse_selector("bestaudio").unwrap(), FormatSelector::BestAudio));
-        assert!(matches!(parse_selector("worstaudio").unwrap(), FormatSelector::WorstAudio));
+        assert!(matches!(
+            parse_selector("best").unwrap(),
+            FormatSelector::Best
+        ));
+        assert!(matches!(
+            parse_selector("worst").unwrap(),
+            FormatSelector::Worst
+        ));
+        assert!(matches!(
+            parse_selector("bestvideo").unwrap(),
+            FormatSelector::BestVideo
+        ));
+        assert!(matches!(
+            parse_selector("worstvideo").unwrap(),
+            FormatSelector::WorstVideo
+        ));
+        assert!(matches!(
+            parse_selector("bestaudio").unwrap(),
+            FormatSelector::BestAudio
+        ));
+        assert!(matches!(
+            parse_selector("worstaudio").unwrap(),
+            FormatSelector::WorstAudio
+        ));
     }
 
     #[test]
     fn parse_short_keywords() {
         assert!(matches!(parse_selector("b").unwrap(), FormatSelector::Best));
-        assert!(matches!(parse_selector("bv").unwrap(), FormatSelector::BestVideo));
-        assert!(matches!(parse_selector("ba").unwrap(), FormatSelector::BestAudio));
-        assert!(matches!(parse_selector("wv").unwrap(), FormatSelector::WorstVideo));
-        assert!(matches!(parse_selector("wa").unwrap(), FormatSelector::WorstAudio));
+        assert!(matches!(
+            parse_selector("bv").unwrap(),
+            FormatSelector::BestVideo
+        ));
+        assert!(matches!(
+            parse_selector("ba").unwrap(),
+            FormatSelector::BestAudio
+        ));
+        assert!(matches!(
+            parse_selector("wv").unwrap(),
+            FormatSelector::WorstVideo
+        ));
+        assert!(matches!(
+            parse_selector("wa").unwrap(),
+            FormatSelector::WorstAudio
+        ));
     }
 
     #[test]

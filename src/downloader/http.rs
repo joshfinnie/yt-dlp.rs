@@ -55,10 +55,7 @@ impl HttpDownloader {
                             attempt, self.retries, e
                         );
                     }
-                    tokio::time::sleep(Duration::from_secs(
-                        (2u64).pow(attempt.min(6)),
-                    ))
-                    .await;
+                    tokio::time::sleep(Duration::from_secs((2u64).pow(attempt.min(6)))).await;
                 }
                 Err(e) => return Err(e),
             }
@@ -91,11 +88,7 @@ impl HttpDownloader {
         let status = resp.status();
 
         if !status.is_success() && status.as_u16() != 206 {
-            return Err(anyhow!(
-                "HTTP {} for {}",
-                status.as_u16(),
-                url
-            ));
+            return Err(anyhow!("HTTP {} for {}", status.as_u16(), url));
         }
 
         let total_size = resp
@@ -157,8 +150,8 @@ impl HttpDownloader {
                 if elapsed > 0.1 {
                     let rate = bytes_since_check as f64 / elapsed;
                     if rate > limit as f64 {
-                        let sleep_ms = ((bytes_since_check as f64 / limit as f64 - elapsed)
-                            * 1000.0) as u64;
+                        let sleep_ms =
+                            ((bytes_since_check as f64 / limit as f64 - elapsed) * 1000.0) as u64;
                         tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
                     }
                     last_rate_check = Instant::now();

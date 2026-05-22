@@ -1,13 +1,13 @@
-pub mod http;
 pub mod hls;
+pub mod http;
 
 use crate::types::{DownloadOptions, Format};
 use anyhow::{Context, Result};
 use reqwest::Client;
 use std::path::Path;
 
-pub use http::HttpDownloader;
 pub use hls::HlsDownloader;
+pub use http::HttpDownloader;
 
 pub fn build_client(opts: &DownloadOptions) -> Result<Client> {
     let mut builder = Client::builder()
@@ -16,15 +16,17 @@ pub fn build_client(opts: &DownloadOptions) -> Result<Client> {
         .connect_timeout(std::time::Duration::from_secs(10));
 
     if let Some(proxy_url) = &opts.proxy {
-        let proxy = reqwest::Proxy::all(proxy_url.as_str())
-            .context("Invalid proxy URL")?;
+        let proxy = reqwest::Proxy::all(proxy_url.as_str()).context("Invalid proxy URL")?;
         builder = builder.proxy(proxy);
     }
 
     if let Some(cookies_file) = &opts.cookies_file {
         // Load Netscape-format cookies file
         // reqwest doesn't natively support Netscape cookies, so we skip for now
-        eprintln!("Warning: --cookies not yet supported, ignoring {}", cookies_file);
+        eprintln!(
+            "Warning: --cookies not yet supported, ignoring {}",
+            cookies_file
+        );
     }
 
     builder.build().context("Failed to build HTTP client")

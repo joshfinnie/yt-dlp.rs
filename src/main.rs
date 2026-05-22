@@ -16,7 +16,9 @@ use output::build_output_path;
 use postprocessor::{ffmpeg_available, ffmpeg_extract_audio, ffmpeg_merge};
 use selector::{parse_selector, select_formats, SelectedFormats};
 use types::{DownloadOptions, Format, VideoInfo};
-use utils::{format_bytes, parse_rate_limit, print_error, print_info, print_success, print_warning};
+use utils::{
+    format_bytes, parse_rate_limit, print_error, print_info, print_success, print_warning,
+};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -200,8 +202,8 @@ async fn process_url(
     args: &Args,
     has_ffmpeg: bool,
 ) -> Result<()> {
-    let extractor = get_extractor(url)
-        .ok_or_else(|| anyhow!("No extractor found for URL: {}", url))?;
+    let extractor =
+        get_extractor(url).ok_or_else(|| anyhow!("No extractor found for URL: {}", url))?;
 
     if !opts.quiet {
         print_info(&format!("[{}] Extracting info...", extractor.name()));
@@ -266,7 +268,9 @@ async fn process_url(
     // Resolve ffmpeg fallback before deciding ext, but after we know if we'd merge
     let (selected, output_ext) = if needs_merge && !has_ffmpeg {
         if !opts.quiet {
-            print_info("ffmpeg not found, downloading best combined format (install ffmpeg for 1080p+)");
+            print_info(
+                "ffmpeg not found, downloading best combined format (install ffmpeg for 1080p+)",
+            );
         }
         let fallback_selector = parse_selector("best")?;
         let fallback = select_formats(&fallback_selector, &info.formats)
@@ -329,12 +333,7 @@ async fn do_single_download(
     client: &reqwest::Client,
     ext: &str,
 ) -> Result<()> {
-    let out_path = build_output_path(
-        &opts.output_template,
-        info,
-        ext,
-        opts.restrict_filenames,
-    );
+    let out_path = build_output_path(&opts.output_template, info, ext, opts.restrict_filenames);
 
     if out_path.exists() {
         if !opts.quiet {
@@ -406,14 +405,12 @@ async fn do_merge_download(
     }
 
     let tmp_dir = tempfile::tempdir().context("Failed to create temp directory")?;
-    let video_tmp =
-        tmp_dir
-            .path()
-            .join(format!("{}.video.{}", info.id, video_fmt.ext));
-    let audio_tmp =
-        tmp_dir
-            .path()
-            .join(format!("{}.audio.{}", info.id, audio_fmt.ext));
+    let video_tmp = tmp_dir
+        .path()
+        .join(format!("{}.video.{}", info.id, video_fmt.ext));
+    let audio_tmp = tmp_dir
+        .path()
+        .join(format!("{}.audio.{}", info.id, audio_fmt.ext));
 
     if !opts.quiet {
         println!(
@@ -482,11 +479,7 @@ async fn do_merge_download(
 fn print_formats(info: &VideoInfo) {
     println!(
         "\n{}\n",
-        format!(
-            "[info] Available formats for {} - {}",
-            info.id, info.title
-        )
-        .bold()
+        format!("[info] Available formats for {} - {}", info.id, info.title).bold()
     );
 
     println!(
@@ -537,7 +530,9 @@ fn print_formats(info: &VideoInfo) {
             _ => "unknown".to_string(),
         };
 
-        let fps = fmt.fps.map_or_else(|| " ".to_string(), |f| format!("{:.0}", f));
+        let fps = fmt
+            .fps
+            .map_or_else(|| " ".to_string(), |f| format!("{:.0}", f));
         let size = fmt
             .approx_filesize()
             .map_or_else(|| "~".to_string(), format_bytes);
@@ -578,7 +573,10 @@ async fn write_subtitles(
     if opts.write_subs {
         for (lang, subs) in &info.subtitles {
             if all_langs || opts.sub_langs.iter().any(|l| l == lang) {
-                let sub = subs.iter().find(|s| s.ext == "vtt").or_else(|| subs.first());
+                let sub = subs
+                    .iter()
+                    .find(|s| s.ext == "vtt")
+                    .or_else(|| subs.first());
                 if let Some(sub) = sub {
                     to_write.push((lang.clone(), sub));
                 }
@@ -589,7 +587,10 @@ async fn write_subtitles(
     if opts.write_auto_subs {
         for (lang, subs) in &info.automatic_captions {
             if all_langs || opts.sub_langs.iter().any(|l| l == lang) {
-                let sub = subs.iter().find(|s| s.ext == "vtt").or_else(|| subs.first());
+                let sub = subs
+                    .iter()
+                    .find(|s| s.ext == "vtt")
+                    .or_else(|| subs.first());
                 if let Some(sub) = sub {
                     to_write.push((lang.clone(), sub));
                 }

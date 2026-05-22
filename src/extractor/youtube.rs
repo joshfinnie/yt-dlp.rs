@@ -23,7 +23,11 @@ impl YoutubeExtractor {
         let url = url.trim();
 
         // Bare 11-char video ID
-        if url.len() == 11 && url.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+        if url.len() == 11
+            && url
+                .chars()
+                .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+        {
             return Some(url.to_string());
         }
 
@@ -84,10 +88,7 @@ impl YoutubeExtractor {
             .context("Failed to call YouTube InnerTube API")?;
 
         if !resp.status().is_success() {
-            return Err(anyhow!(
-                "InnerTube API returned HTTP {}",
-                resp.status()
-            ));
+            return Err(anyhow!("InnerTube API returned HTTP {}", resp.status()));
         }
 
         resp.json::<PlayerResponse>()
@@ -95,11 +96,7 @@ impl YoutubeExtractor {
             .context("Failed to parse InnerTube API response")
     }
 
-    async fn fetch_webpage_info(
-        &self,
-        video_id: &str,
-        client: &Client,
-    ) -> Option<WebpageInfo> {
+    async fn fetch_webpage_info(&self, video_id: &str, client: &Client) -> Option<WebpageInfo> {
         let url = format!("https://www.youtube.com/watch?v={}", video_id);
         let resp = client
             .get(&url)
@@ -126,7 +123,11 @@ impl YoutubeExtractor {
         })
     }
 
-    fn parse_formats(&self, streaming_data: &StreamingData, _duration_secs: Option<f64>) -> Vec<Format> {
+    fn parse_formats(
+        &self,
+        streaming_data: &StreamingData,
+        _duration_secs: Option<f64>,
+    ) -> Vec<Format> {
         let mut formats = Vec::new();
 
         let all_formats = streaming_data
@@ -174,15 +175,17 @@ impl YoutubeExtractor {
                 && vcodec.as_deref().map_or(true, |v| v == "none")
             {
                 // Pure audio
-                if ext == "mp4" { "m4a".to_string() } else { ext }
+                if ext == "mp4" {
+                    "m4a".to_string()
+                } else {
+                    ext
+                }
             } else {
                 ext
             };
 
             let abr = if is_audio_container || acodec.as_deref().map_or(false, |a| a != "none") {
-                sf.bitrate
-                    .or(sf.average_bitrate)
-                    .map(|b| b as f64 / 1000.0)
+                sf.bitrate.or(sf.average_bitrate).map(|b| b as f64 / 1000.0)
             } else {
                 None
             };
@@ -198,10 +201,7 @@ impl YoutubeExtractor {
                 None
             };
 
-            let tbr = sf
-                .average_bitrate
-                .or(sf.bitrate)
-                .map(|b| b as f64 / 1000.0);
+            let tbr = sf.average_bitrate.or(sf.bitrate).map(|b| b as f64 / 1000.0);
 
             let filesize = sf.content_length.as_deref().and_then(|s| s.parse().ok());
             let filesize_approx = sf.approx_duration_ms.as_deref().and_then(|ms| {
@@ -221,19 +221,19 @@ impl YoutubeExtractor {
             });
 
             let quality_note = sf.quality_label.clone().or_else(|| {
-                sf.audio_quality.as_deref().map(|q| match q {
-                    "AUDIO_QUALITY_LOW" => "low",
-                    "AUDIO_QUALITY_MEDIUM" => "medium",
-                    "AUDIO_QUALITY_HIGH" => "high",
-                    other => other,
-                }.to_string())
+                sf.audio_quality.as_deref().map(|q| {
+                    match q {
+                        "AUDIO_QUALITY_LOW" => "low",
+                        "AUDIO_QUALITY_MEDIUM" => "medium",
+                        "AUDIO_QUALITY_HIGH" => "high",
+                        other => other,
+                    }
+                    .to_string()
+                })
             });
 
             let mut http_headers = HashMap::new();
-            http_headers.insert(
-                "User-Agent".to_string(),
-                INNERTUBE_UA.to_string(),
-            );
+            http_headers.insert("User-Agent".to_string(), INNERTUBE_UA.to_string());
 
             formats.push(Format {
                 format_id: sf.itag.to_string(),
@@ -294,8 +294,10 @@ fn parse_cipher_url(cipher: &str) -> Option<String> {
 }
 
 fn extract_like_count(html: &str) -> Option<u64> {
-    let re = Regex::new(r#""defaultText":\{"accessibility":\{"accessibilityData":\{"label":"([0-9,]+) likes"\}\}"#)
-        .ok()?;
+    let re = Regex::new(
+        r#""defaultText":\{"accessibility":\{"accessibilityData":\{"label":"([0-9,]+) likes"\}\}"#,
+    )
+    .ok()?;
     let caps = re.captures(html)?;
     let s = caps.get(1)?.as_str().replace(',', "");
     s.parse().ok()
@@ -376,7 +378,9 @@ impl Extractor for YoutubeExtractor {
             }
         }
 
-        let vd = player.video_details.as_ref()
+        let vd = player
+            .video_details
+            .as_ref()
             .ok_or_else(|| anyhow!("No video details in response"))?;
 
         let duration = vd
@@ -414,13 +418,12 @@ impl Extractor for YoutubeExtractor {
             })
             .unwrap_or_default();
 
-        let best_thumbnail = thumbnails.last().map(|t| t.url.clone())
-            .or_else(|| {
-                Some(format!(
-                    "https://i.ytimg.com/vi/{}/maxresdefault.jpg",
-                    video_id
-                ))
-            });
+        let best_thumbnail = thumbnails.last().map(|t| t.url.clone()).or_else(|| {
+            Some(format!(
+                "https://i.ytimg.com/vi/{}/maxresdefault.jpg",
+                video_id
+            ))
+        });
 
         // Parse subtitles
         let mut subtitles: HashMap<String, Vec<Subtitle>> = HashMap::new();
@@ -441,10 +444,7 @@ impl Extractor for YoutubeExtractor {
 
                         // Add different subtitle formats via URL manipulation
                         for fmt in &["vtt", "srv1", "ttml"] {
-                            let sub_url = format!(
-                                "{}&fmt={}",
-                                track.base_url, fmt
-                            );
+                            let sub_url = format!("{}&fmt={}", track.base_url, fmt);
                             let entry = Subtitle {
                                 url: sub_url,
                                 ext: fmt.to_string(),
@@ -477,19 +477,19 @@ impl Extractor for YoutubeExtractor {
             .map(|c| vec![c.clone()])
             .unwrap_or_default();
 
-        let view_count = vd
-            .view_count
-            .as_deref()
-            .and_then(|s| s.parse::<u64>().ok());
+        let view_count = vd.view_count.as_deref().and_then(|s| s.parse::<u64>().ok());
 
         // Fetch supplemental page info for likes/channel URL
         let webpage = self.fetch_webpage_info(&video_id, client).await;
 
-        let channel_url = webpage.as_ref().and_then(|w| w.channel_url.clone()).or_else(|| {
-            vd.channel_id.as_deref().map(|id| {
-                format!("https://www.youtube.com/channel/{}", id)
-            })
-        });
+        let channel_url = webpage
+            .as_ref()
+            .and_then(|w| w.channel_url.clone())
+            .or_else(|| {
+                vd.channel_id
+                    .as_deref()
+                    .map(|id| format!("https://www.youtube.com/channel/{}", id))
+            });
 
         let channel_id = vd.channel_id.clone();
         let author = vd.author.clone();
@@ -518,7 +518,11 @@ impl Extractor for YoutubeExtractor {
             automatic_captions: auto_captions,
             tags: vd.keywords.clone().unwrap_or_default(),
             categories,
-            age_limit: if vd.is_crawlable == Some(false) { Some(18) } else { Some(0) },
+            age_limit: if vd.is_crawlable == Some(false) {
+                Some(18)
+            } else {
+                Some(0)
+            },
             is_live: Some(vd.is_live_content.unwrap_or(false)),
             live_status: if vd.is_live_content.unwrap_or(false) {
                 Some("is_live".to_string())
@@ -772,7 +776,10 @@ mod tests {
 
     #[test]
     fn non_youtube_url_returns_none() {
-        assert_eq!(YoutubeExtractor::extract_video_id("https://vimeo.com/12345"), None);
+        assert_eq!(
+            YoutubeExtractor::extract_video_id("https://vimeo.com/12345"),
+            None
+        );
     }
 
     #[test]

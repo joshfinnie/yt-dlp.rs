@@ -3,11 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tokio::process::Command;
 
-pub async fn ffmpeg_merge(
-    video_path: &Path,
-    audio_path: &Path,
-    output_path: &Path,
-) -> Result<()> {
+pub async fn ffmpeg_merge(video_path: &Path, audio_path: &Path, output_path: &Path) -> Result<()> {
     let status = Command::new("ffmpeg")
         .args([
             "-y",
@@ -26,18 +22,12 @@ pub async fn ffmpeg_merge(
         .context("Failed to run ffmpeg (is it installed?)")?;
 
     if !status.success() {
-        return Err(anyhow!(
-            "ffmpeg exited with code {:?}",
-            status.code()
-        ));
+        return Err(anyhow!("ffmpeg exited with code {:?}", status.code()));
     }
     Ok(())
 }
 
-pub async fn ffmpeg_extract_audio(
-    input_path: &Path,
-    output_ext: &str,
-) -> Result<PathBuf> {
+pub async fn ffmpeg_extract_audio(input_path: &Path, output_ext: &str) -> Result<PathBuf> {
     let output_path = input_path.with_extension(output_ext);
 
     let mut args = vec![
@@ -61,11 +51,7 @@ pub async fn ffmpeg_extract_audio(
             ]);
         }
         "opus" => {
-            args.extend([
-                "-vn".to_string(),
-                "-c:a".to_string(),
-                "libopus".to_string(),
-            ]);
+            args.extend(["-vn".to_string(), "-c:a".to_string(), "libopus".to_string()]);
         }
         _ => {
             args.extend(["-vn".to_string(), "-c:a".to_string(), "copy".to_string()]);
@@ -93,10 +79,7 @@ pub async fn ffmpeg_extract_audio(
 }
 
 #[allow(dead_code)]
-pub async fn ffmpeg_convert_hls(
-    m3u8_url: &str,
-    output_path: &Path,
-) -> Result<()> {
+pub async fn ffmpeg_convert_hls(m3u8_url: &str, output_path: &Path) -> Result<()> {
     let status = Command::new("ffmpeg")
         .args([
             "-y",
@@ -141,10 +124,7 @@ pub async fn ffmpeg_remux(input_path: &Path, output_path: &Path) -> Result<()> {
         .context("Failed to run ffmpeg for remux")?;
 
     if !status.success() {
-        return Err(anyhow!(
-            "ffmpeg remux exited with code {:?}",
-            status.code()
-        ));
+        return Err(anyhow!("ffmpeg remux exited with code {:?}", status.code()));
     }
     Ok(())
 }

@@ -9,11 +9,23 @@ pub fn expand_template(template: &str, info: &VideoInfo, ext: &str) -> String {
         ("%(title)s", info.title.clone()),
         ("%(ext)s", ext.to_string()),
         ("%(uploader)s", info.uploader.clone().unwrap_or_default()),
-        ("%(uploader_id)s", info.uploader_id.clone().unwrap_or_default()),
+        (
+            "%(uploader_id)s",
+            info.uploader_id.clone().unwrap_or_default(),
+        ),
         ("%(channel)s", info.channel.clone().unwrap_or_default()),
-        ("%(channel_id)s", info.channel_id.clone().unwrap_or_default()),
-        ("%(upload_date)s", info.upload_date.clone().unwrap_or_default()),
-        ("%(description)s", info.description.clone().unwrap_or_default()),
+        (
+            "%(channel_id)s",
+            info.channel_id.clone().unwrap_or_default(),
+        ),
+        (
+            "%(upload_date)s",
+            info.upload_date.clone().unwrap_or_default(),
+        ),
+        (
+            "%(description)s",
+            info.description.clone().unwrap_or_default(),
+        ),
         (
             "%(duration)s",
             info.duration.map_or_else(String::new, format_duration),
@@ -31,10 +43,7 @@ pub fn expand_template(template: &str, info: &VideoInfo, ext: &str) -> String {
             info.playlist_index
                 .map_or_else(String::new, |i| format!("{:03}", i)),
         ),
-        (
-            "%(playlist)s",
-            info.playlist.clone().unwrap_or_default(),
-        ),
+        ("%(playlist)s", info.playlist.clone().unwrap_or_default()),
         (
             "%(playlist_id)s",
             info.playlist_id.clone().unwrap_or_default(),
@@ -96,7 +105,9 @@ pub fn sanitize_filename(name: &str, restrict: bool) -> String {
     // Cap length at 200 chars to avoid filesystem limits
     if s.len() > 200 {
         s.truncate(200);
-        s = s.trim_end_matches(|c: char| !c.is_alphanumeric()).to_string();
+        s = s
+            .trim_end_matches(|c: char| !c.is_alphanumeric())
+            .to_string();
     }
 
     if s.is_empty() {
@@ -106,12 +117,7 @@ pub fn sanitize_filename(name: &str, restrict: bool) -> String {
     s
 }
 
-pub fn build_output_path(
-    template: &str,
-    info: &VideoInfo,
-    ext: &str,
-    restrict: bool,
-) -> PathBuf {
+pub fn build_output_path(template: &str, info: &VideoInfo, ext: &str, restrict: bool) -> PathBuf {
     let expanded = expand_template(template, info, ext);
 
     // Split into dir and filename parts and sanitize only the filename portion
@@ -227,7 +233,10 @@ mod tests {
     fn restrict_mode_removes_non_ascii() {
         // In restrict mode, non-ASCII chars become underscores
         let result = sanitize_filename("café", true);
-        assert!(!result.contains('é'), "non-ASCII should be removed in restrict mode");
+        assert!(
+            !result.contains('é'),
+            "non-ASCII should be removed in restrict mode"
+        );
     }
 
     #[test]
