@@ -1,7 +1,7 @@
-# yt-dpl
+# yt-dlp
 
-[![CI](https://github.com/jfinnie/yt-dpl.rs/actions/workflows/ci.yml/badge.svg)](https://github.com/jfinnie/yt-dpl.rs/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jfinnie/yt-dpl.rs/branch/main/graph/badge.svg)](https://codecov.io/gh/jfinnie/yt-dpl.rs)
+[![CI](https://github.com/joshfinnie/yt-dlp.rs/actions/workflows/ci.yml/badge.svg)](https://github.com/joshfinnie/yt-dlp.rs/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/joshfinnie/yt-dlp.rs/branch/main/graph/badge.svg)](https://codecov.io/gh/joshfinnie/yt-dlp.rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A fast video downloader written in Rust. Inspired by [yt-dlp](https://github.com/yt-dlp/yt-dlp).
@@ -24,48 +24,48 @@ Downloads YouTube videos with no Python dependency, a single static binary, and 
 
 ### Pre-built binaries
 
-Download the latest release for your platform from the [Releases](https://github.com/jfinnie/yt-dpl.rs/releases) page.
+Download the latest release for your platform from the [Releases](https://github.com/joshfinnie/yt-dlp.rs/releases) page.
 
 ### From source
 
 Requires Rust 1.75+:
 
 ```sh
-cargo install --git https://github.com/jfinnie/yt-dpl.rs
+cargo install --git https://github.com/joshfinnie/yt-dlp.rs
 ```
 
 Or clone and build:
 
 ```sh
-git clone https://github.com/jfinnie/yt-dpl.rs
-cd yt-dpl.rs
+git clone https://github.com/joshfinnie/yt-dlp.rs
+cd yt-dlp.rs
 cargo build --release
-# binary at ./target/release/yt-dpl
+# binary at ./target/release/yt-dlp
 ```
 
 ## Quick start
 
 ```sh
 # Download at best available quality
-yt-dpl 'https://youtu.be/dQw4w9WgXcQ'
+yt-dlp 'https://youtu.be/dQw4w9WgXcQ'
 
 # List all available formats
-yt-dpl -F 'https://youtu.be/dQw4w9WgXcQ'
+yt-dlp -F 'https://youtu.be/dQw4w9WgXcQ'
 
 # Download best 1080p video + best audio, merge to MKV (requires ffmpeg)
-yt-dpl -f 'bestvideo[height<=1080]+bestaudio' 'https://youtu.be/dQw4w9WgXcQ'
+yt-dlp -f 'bestvideo[height<=1080]+bestaudio' 'https://youtu.be/dQw4w9WgXcQ'
 
 # Extract audio only
-yt-dpl -x -f bestaudio 'https://youtu.be/dQw4w9WgXcQ'
+yt-dlp -x -f bestaudio 'https://youtu.be/dQw4w9WgXcQ'
 
 # Print video info as JSON (scriptable)
-yt-dpl -j 'https://youtu.be/dQw4w9WgXcQ' 2>/dev/null | jq .title
+yt-dlp -j 'https://youtu.be/dQw4w9WgXcQ' 2>/dev/null | jq .title
 ```
 
 ## Usage
 
 ```
-yt-dpl [OPTIONS] <URL>...
+yt-dlp [OPTIONS] <URL>...
 ```
 
 ### Options
@@ -145,15 +145,15 @@ Output filenames are expanded from `%(field)s` placeholders:
 
 ```sh
 # Organise by uploader
-yt-dpl -o '%(uploader)s/%(upload_date)s %(title)s.%(ext)s' URL
+yt-dlp -o '%(uploader)s/%(upload_date)s %(title)s.%(ext)s' URL
 
 # Include view count
-yt-dpl -o '%(title)s [%(view_count)s views].%(ext)s' URL
+yt-dlp -o '%(title)s [%(view_count)s views].%(ext)s' URL
 ```
 
 ## ffmpeg
 
-ffmpeg is **optional**. Without it, `yt-dpl` falls back to the best *combined* format (video+audio in a single file, typically up to 720p).
+ffmpeg is **optional**. Without it, `yt-dlp` falls back to the best *combined* format (video+audio in a single file, typically up to 720p).
 
 With ffmpeg, you get:
 - Up to 4K/HDR by merging separate video and audio adaptive streams

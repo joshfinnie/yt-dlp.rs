@@ -1,16 +1,16 @@
 [package]
-name = "yt-dpl"
+name = "yt-dlp"
 version = "0.1.0"
 edition = "2021"
 description = "A fast video downloader written in Rust"
 license = "MIT"
-repository = "https://github.com/jfinnie/yt-dpl.rs"
+repository = "https://github.com/joshfinnie/yt-dlp.rs"
 keywords = ["youtube", "downloader", "video", "yt-dlp"]
 categories = ["command-line-utilities", "multimedia::video"]
 rust-version = "1.75"
 
 [[bin]]
-name = "yt-dpl"
+name = "yt-dlp"
 path = "src/main.rs"
 
 [dependencies]

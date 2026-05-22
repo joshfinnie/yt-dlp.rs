@@ -18,27 +18,27 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            archive: yt-dpl-linux-x86_64.tar.gz
+            archive: yt-dlp-linux-x86_64.tar.gz
 
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            archive: yt-dpl-linux-x86_64-musl.tar.gz
+            archive: yt-dlp-linux-x86_64-musl.tar.gz
 
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            archive: yt-dpl-linux-arm64.tar.gz
+            archive: yt-dlp-linux-arm64.tar.gz
 
           - os: macos-latest
             target: x86_64-apple-darwin
-            archive: yt-dpl-macos-x86_64.tar.gz
+            archive: yt-dlp-macos-x86_64.tar.gz
 
           - os: macos-latest
             target: aarch64-apple-darwin
-            archive: yt-dpl-macos-arm64.tar.gz
+            archive: yt-dlp-macos-arm64.tar.gz
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            archive: yt-dpl-windows-x86_64.zip
+            archive: yt-dlp-windows-x86_64.zip
 
     steps:
       - uses: actions/checkout@v4
@@ -69,9 +69,9 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=target/${{ matrix.target }}/release/yt-dpl
+          BIN=target/${{ matrix.target }}/release/yt-dlp
           mkdir -p dist
-          cp "$BIN" dist/yt-dpl
+          cp "$BIN" dist/yt-dlp
           cp README.md LICENSE dist/
           tar -czf "${{ matrix.archive }}" -C dist .
 
@@ -79,9 +79,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $bin = "target/${{ matrix.target }}/release/yt-dpl.exe"
+          $bin = "target/${{ matrix.target }}/release/yt-dlp.exe"
           New-Item -ItemType Directory -Force dist
-          Copy-Item $bin dist/yt-dpl.exe
+          Copy-Item $bin dist/yt-dlp.exe
           Copy-Item README.md dist/
           Copy-Item LICENSE dist/
           Compress-Archive -Path dist/* -DestinationPath "${{ matrix.archive }}"

@@ -20,14 +20,14 @@ use utils::{format_bytes, parse_rate_limit, print_error, print_info, print_succe
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "yt-dpl",
+    name = "yt-dlp",
     about = "Download videos from YouTube and other sites",
     version = env!("CARGO_PKG_VERSION"),
     after_help = "EXAMPLES:
-    yt-dpl 'https://youtu.be/dQw4w9WgXcQ'
-    yt-dpl -f 'bestvideo[height<=1080]+bestaudio' URL
-    yt-dpl -x -f bestaudio URL
-    yt-dpl -F URL"
+    yt-dlp 'https://youtu.be/dQw4w9WgXcQ'
+    yt-dlp -f 'bestvideo[height<=1080]+bestaudio' URL
+    yt-dlp -x -f bestaudio URL
+    yt-dlp -F URL"
 )]
 struct Args {
     /// URLs to download (or YouTube video IDs)

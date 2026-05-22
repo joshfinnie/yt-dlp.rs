@@ -2,8 +2,8 @@
 /// Run with: cargo test -- --include-ignored
 use std::process::Command;
 
-fn yt_dpl() -> Command {
-    let bin = env!("CARGO_BIN_EXE_yt-dpl");
+fn yt_dlp() -> Command {
+    let bin = env!("CARGO_BIN_EXE_yt-dlp");
     Command::new(bin)
 }
 
@@ -11,10 +11,10 @@ fn yt_dpl() -> Command {
 #[test]
 #[ignore = "requires network"]
 fn youtube_extract_json() {
-    let out = yt_dpl()
+    let out = yt_dlp()
         .args(["--dump-json", "--quiet", "dQw4w9WgXcQ"])
         .output()
-        .expect("failed to run yt-dpl");
+        .expect("failed to run yt-dlp");
 
     assert!(
         out.status.success(),
@@ -43,10 +43,10 @@ fn youtube_extract_json() {
 #[test]
 #[ignore = "requires network"]
 fn youtube_list_formats() {
-    let out = yt_dpl()
+    let out = yt_dlp()
         .args(["--list-formats", "dQw4w9WgXcQ"])
         .output()
-        .expect("failed to run yt-dpl");
+        .expect("failed to run yt-dlp");
 
     assert!(out.status.success());
     let stdout = String::from_utf8_lossy(&out.stderr);
@@ -59,7 +59,7 @@ fn youtube_list_formats() {
 #[ignore = "requires network"]
 fn youtube_simulate_no_download() {
     let dir = tempfile::tempdir().unwrap();
-    let out = yt_dpl()
+    let out = yt_dlp()
         .args([
             "--simulate",
             "--quiet",
@@ -68,7 +68,7 @@ fn youtube_simulate_no_download() {
             "dQw4w9WgXcQ",
         ])
         .output()
-        .expect("failed to run yt-dpl");
+        .expect("failed to run yt-dlp");
 
     assert!(out.status.success());
     let entries: Vec<_> = std::fs::read_dir(dir.path())
@@ -85,7 +85,7 @@ fn youtube_download_format_18() {
     let dir = tempfile::tempdir().unwrap();
     let out_template = format!("{}/video.%(ext)s", dir.path().display());
 
-    let status = yt_dpl()
+    let status = yt_dlp()
         .args([
             "-f", "18",
             "--no-progress",
@@ -94,7 +94,7 @@ fn youtube_download_format_18() {
             "dQw4w9WgXcQ",
         ])
         .status()
-        .expect("failed to run yt-dpl");
+        .expect("failed to run yt-dlp");
 
     assert!(status.success());
 
