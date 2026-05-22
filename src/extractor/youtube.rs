@@ -168,10 +168,48 @@ impl YoutubeExtractor {
             );
         }
 
+        // Final fallback: extract ytInitialPlayerResponse from the webpage HTML.
+        // Some videos are only accessible via the pre-authenticated response embedded
+        // in the page (e.g. when all API clients are geo-blocked or client-restricted).
+        if let Some(player) = self.fetch_webpage_player_response(video_id, client).await {
+            let status = player
+                .playability_status
+                .as_ref()
+                .map(|ps| ps.status.as_str())
+                .unwrap_or("OK");
+            if status == "OK" {
+                return Ok(player);
+            }
+        }
+
         Err(anyhow!(
             "{}",
             last_err.unwrap_or_else(|| "All InnerTube clients failed".to_string())
         ))
+    }
+
+    async fn fetch_webpage_player_response(
+        &self,
+        video_id: &str,
+        client: &Client,
+    ) -> Option<PlayerResponse> {
+        let url = format!("https://www.youtube.com/watch?v={}", video_id);
+        let text = client
+            .get(&url)
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            )
+            .header("Accept-Language", "en-US,en;q=0.9")
+            .send()
+            .await
+            .ok()?
+            .text()
+            .await
+            .ok()?;
+
+        let json_str = extract_json_object(&text, "ytInitialPlayerResponse")?;
+        serde_json::from_str::<PlayerResponse>(&json_str).ok()
     }
 
     async fn fetch_webpage_info(&self, video_id: &str, client: &Client) -> Option<WebpageInfo> {
@@ -189,7 +227,6 @@ impl YoutubeExtractor {
 
         let text = resp.text().await.ok()?;
 
-        // Extract ytInitialData
         let likes = extract_like_count(&text);
         let categories = extract_categories(&text);
         let channel_url = extract_channel_url(&text);
@@ -362,6 +399,44 @@ impl YoutubeExtractor {
 
         formats
     }
+}
+
+fn extract_json_object(text: &str, key: &str) -> Option<String> {
+    let marker = format!("{} =", key);
+    let start = text.find(&marker)?;
+    let brace_start = text[start..].find('{')? + start;
+    let slice = &text[brace_start..];
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escape = false;
+    for (i, c) in slice.char_indices() {
+        if escape {
+            escape = false;
+            continue;
+        }
+        if c == '\\' && in_string {
+            escape = true;
+            continue;
+        }
+        if c == '"' {
+            in_string = !in_string;
+            continue;
+        }
+        if in_string {
+            continue;
+        }
+        match c {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(slice[..=i].to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn parse_cipher_url(cipher: &str) -> Option<String> {
