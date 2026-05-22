@@ -16,6 +16,12 @@ pub struct HttpDownloader {
     quiet: bool,
 }
 
+fn is_fatal_error(e: &anyhow::Error) -> bool {
+    let msg = e.to_string();
+    // 403/404/410 won't be fixed by retrying
+    msg.contains("HTTP 403") || msg.contains("HTTP 404") || msg.contains("HTTP 410")
+}
+
 impl HttpDownloader {
     pub fn new(
         client: Client,
@@ -47,7 +53,7 @@ impl HttpDownloader {
                 .await
             {
                 Ok(bytes) => return Ok(bytes),
-                Err(e) if attempt < self.retries => {
+                Err(e) if attempt < self.retries && !is_fatal_error(&e) => {
                     attempt += 1;
                     if !self.quiet {
                         eprintln!(

@@ -56,7 +56,7 @@ impl YoutubeExtractor {
         &self,
         video_id: &str,
         client: &Client,
-    ) -> Result<PlayerResponse> {
+    ) -> Result<(PlayerResponse, String)> {
         // Try clients in order; return first OK response.
         let attempts = [
             (
@@ -156,7 +156,7 @@ impl YoutubeExtractor {
                 .unwrap_or("OK");
 
             if status == "OK" {
-                return Ok(player);
+                return Ok((player, ua.to_string()));
             }
 
             last_err = Some(
@@ -171,6 +171,8 @@ impl YoutubeExtractor {
         // Final fallback: extract ytInitialPlayerResponse from the webpage HTML.
         // Some videos are only accessible via the pre-authenticated response embedded
         // in the page (e.g. when all API clients are geo-blocked or client-restricted).
+        // Formats from this path carry c=WEB in the URL, so use a browser UA for downloads.
+        const WEB_UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
         if let Some(player) = self.fetch_webpage_player_response(video_id, client).await {
             let status = player
                 .playability_status
@@ -178,7 +180,7 @@ impl YoutubeExtractor {
                 .map(|ps| ps.status.as_str())
                 .unwrap_or("OK");
             if status == "OK" {
-                return Ok(player);
+                return Ok((player, WEB_UA.to_string()));
             }
         }
 
@@ -242,6 +244,7 @@ impl YoutubeExtractor {
         &self,
         streaming_data: &StreamingData,
         _duration_secs: Option<f64>,
+        download_ua: &str,
     ) -> Vec<Format> {
         let mut formats = Vec::new();
 
@@ -348,7 +351,11 @@ impl YoutubeExtractor {
             });
 
             let mut http_headers = HashMap::new();
-            http_headers.insert("User-Agent".to_string(), INNERTUBE_UA.to_string());
+            http_headers.insert("User-Agent".to_string(), download_ua.to_string());
+            http_headers.insert(
+                "Referer".to_string(),
+                "https://www.youtube.com/".to_string(),
+            );
 
             formats.push(Format {
                 format_id: sf.itag.to_string(),
@@ -382,7 +389,7 @@ impl YoutubeExtractor {
         // Add HLS formats if available
         if let Some(hls_url) = &streaming_data.hls_manifest_url {
             let mut headers = HashMap::new();
-            headers.insert("User-Agent".to_string(), INNERTUBE_UA.to_string());
+            headers.insert("User-Agent".to_string(), download_ua.to_string());
             formats.push(Format {
                 format_id: "hls-best".to_string(),
                 format_note: Some("HLS best".to_string()),
@@ -498,7 +505,7 @@ impl Extractor for YoutubeExtractor {
         let video_id = Self::extract_video_id(url)
             .ok_or_else(|| anyhow!("Could not extract YouTube video ID from: {}", url))?;
 
-        let player = self
+        let (player, download_ua) = self
             .fetch_player_response(&video_id, client)
             .await
             .context("Failed to fetch player response")?;
@@ -544,7 +551,7 @@ impl Extractor for YoutubeExtractor {
         let formats = player
             .streaming_data
             .as_ref()
-            .map(|sd| self.parse_formats(sd, duration))
+            .map(|sd| self.parse_formats(sd, duration, &download_ua))
             .unwrap_or_default();
 
         if formats.is_empty() {
